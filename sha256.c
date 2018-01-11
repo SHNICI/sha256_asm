@@ -23,6 +23,87 @@
 
 #include <stdint.h>
 
+static int sha256_self_check(void) {
+	struct TestCase {
+		uint32_t answer[STATE_LEN];
+		const char *message;
+	};
+	
+	static const struct TestCase cases[] = {
+		#define TESTCASE(a,b,c,d,e,f,g,h,msg) {{UINT32_C(a),UINT32_C(b),UINT32_C(c),UINT32_C(d),UINT32_C(e),UINT32_C(f),UINT32_C(g),UINT32_C(h)}, msg}
+		TESTCASE(0xE3B0C442,0x98FC1C14,0x9AFBF4C8,0x996FB924,0x27AE41E4,0x649B934C,0xA495991B,0x7852B855, ""),
+		TESTCASE(0xCA978112,0xCA1BBDCA,0xFAC231B3,0x9A23DC4D,0xA786EFF8,0x147C4E72,0xB9807785,0xAFEE48BB, "a"),
+		TESTCASE(0xBA7816BF,0x8F01CFEA,0x414140DE,0x5DAE2223,0xB00361A3,0x96177A9C,0xB410FF61,0xF20015AD, "abc"),
+		TESTCASE(0xF7846F55,0xCF23E14E,0xEBEAB5B4,0xE1550CAD,0x5B509E33,0x48FBC4EF,0xA3A1413D,0x393CB650, "message digest"),
+		TESTCASE(0x71C480DF,0x93D6AE2F,0x1EFAD144,0x7C66C952,0x5E316218,0xCF51FC8D,0x9ED832F2,0xDAF18B73, "abcdefghijklmnopqrstuvwxyz"),
+		TESTCASE(0x248D6A61,0xD20638B8,0xE5C02693,0x0C3E6039,0xA33CE459,0x64FF2167,0xF6ECEDD4,0x19DB06C1, "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"),
+		#undef TESTCASE
+	};
+	
+	size_t numCases = sizeof(cases) / sizeof(cases[0]);
+	for (size_t i = 0; i < numCases; i++) {
+		const struct TestCase *tc = &cases[i];
+		size_t len = strlen(tc->message);
+		/*uint8_t *msg = calloc(len, sizeof(uint8_t));
+		if (msg == NULL) {
+			perror("calloc");
+			exit(1);
+		}
+		//for (size_t j = 0; j < len; j++)
+		//	msg[j] = (uint8_t)tc->message[j];
+		*/
+		uint32_t hash[STATE_LEN];
+		sha256_hash_message((uint8_t*)tc->message, len, hash);
+		for (i=0 ; i<8 ; i++)
+		{
+			hash[i]  = htobe32(hash[i]);
+		}
+
+		if (memcmp(hash, tc->answer, sizeof(tc->answer)) != 0)
+			return 0;
+		//free(msg);
+	}
+	return 1;
+}
+
+void sha256_hash_message(const uint8_t message[], size_t len, uint32_t hash[static STATE_LEN]) {
+	int i;
+	hash[0] = UINT32_C(0x6A09E667);
+	hash[1] = UINT32_C(0xBB67AE85);
+	hash[2] = UINT32_C(0x3C6EF372);
+	hash[3] = UINT32_C(0xA54FF53A);
+	hash[4] = UINT32_C(0x510E527F);
+	hash[5] = UINT32_C(0x9B05688C);
+	hash[6] = UINT32_C(0x1F83D9AB);
+	hash[7] = UINT32_C(0x5BE0CD19);
+	
+	#define LENGTH_SIZE 8  // In bytes
+	
+	size_t off;
+	for (off = 0; len - off >= BLOCK_LEN; off += BLOCK_LEN)
+		sha256_compress(hash, &message[off]);
+	
+	uint8_t block[BLOCK_LEN] = {0};
+	size_t rem = len - off;
+	memcpy(block, &message[off], rem);
+	
+	block[rem] = 0x80;
+	rem++;
+	if (BLOCK_LEN - rem < LENGTH_SIZE) {
+		sha256_compress(hash, block);
+		memset(block, 0, sizeof(block));
+	}
+	
+	block[BLOCK_LEN - 1] = (uint8_t)((len & 0x1FU) << 3);
+	len >>= 5;
+	for (i = 1; i < LENGTH_SIZE; i++, len >>= 8)
+		block[BLOCK_LEN - 1 - i] = (uint8_t)(len & 0xFFU);
+	sha256_compress(hash, block);
+	for (i=0 ; i<8 ; i++)
+	{
+		hash[i]  = htobe32(hash[i]);
+	}
+}
 
 void sha256_compress(uint32_t state[static 8], const uint8_t block[static 64]) {
 	#define ROTR32(x, n)  (((0U + (x)) << (32 - (n))) | ((x) >> (n)))  // Assumes that x is uint32_t and 0 < n < 32
