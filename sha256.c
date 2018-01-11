@@ -1,8 +1,7 @@
 /* 
- * SHA-256 hash in C
+ * SHA-256 message handler and testing
  * 
- * Copyright (c) 2017 Project Nayuki. (MIT License)
- * https://www.nayuki.io/page/fast-sha2-hashes-in-x86-assembly
+ * Copyright (c) 2017 Marc-Andre Legault (MIT License)
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -22,6 +21,9 @@
  */
 
 #include <stdint.h>
+#include <string.h>
+
+#include "sha256.h"
 
 static int sha256_self_check(void) {
 	struct TestCase {

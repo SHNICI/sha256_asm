@@ -3,6 +3,7 @@
 
 
 #include <stdint.h>
+#include <endian.h>
 
 #define STATE_LEN 8
 #define BLOCK_LEN 64
