@@ -25,7 +25,7 @@
 
 #include "sha256.h"
 
-static int sha256_self_check(void) {
+int sha256_self_check(void) {
 	struct TestCase {
 		uint32_t answer[STATE_LEN];
 		const char *message;
