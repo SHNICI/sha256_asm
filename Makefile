@@ -1,4 +1,4 @@
-OUT = libsha256x8664.a
+OUT = libsha256_x8664.a
 CC = gcc
 ODIR = obj
 SDIR = .
@@ -15,16 +15,17 @@ LIBS = -lm
 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
-
-$(ODIR)/%.o: $(SDIR)/%.S
-	$(CC) -c $(INC) -o $@ $^ $(CFLAGS) 
-
-$(ODIR)/%.o: $(SDIR)/%.c
-	$(CC) -c $(INC) -o $@ $^ $(CFLAGS) 
+OBJS = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(OUT): $(OBJS) 
 	ar rvs $(OUT) $^
+
+$(ODIR)/sha256_x8664.o: $(SDIR)/sha256-x8664.S
+	$(CC) -c $(INC) -o $@ $^ $(CFLAGS) 
+
+$(ODIR)/sha256.o: $(SDIR)/sha256.c
+	$(CC) -c $(INC) -o $@ $^ $(CFLAGS) 
+
 
 $(DEPS):
 .PHONY: clean
